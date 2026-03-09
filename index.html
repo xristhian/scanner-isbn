@@ -20,17 +20,13 @@
   .header-text h1{font-size:18px;font-weight:800;line-height:1;letter-spacing:-0.5px}
   .header-text p{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:2px}
   .scanner-section{padding:20px;flex:1;display:flex;flex-direction:column;gap:14px}
-
-  /* Camera area - html5-qrcode renders inside here */
   .camera-wrapper{position:relative;width:100%;border-radius:20px;overflow:hidden;background:var(--surface);border:1px solid var(--border);min-height:260px}
   #reader{width:100%}
-  /* Override html5-qrcode default styles */
   #reader video{border-radius:0!important;border:none!important}
   #reader img{display:none!important}
   #reader__scan_region{border:none!important}
   #reader__scan_region img{display:none!important}
   #reader__dashboard{display:none!important}
-
   .scan-corners{position:absolute;inset:0;pointer-events:none;z-index:10}
   .corner{position:absolute;width:28px;height:28px}
   .corner::before,.corner::after{content:'';position:absolute;background:var(--accent);border-radius:2px}
@@ -41,20 +37,17 @@
   .scan-line{position:absolute;left:16px;right:16px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),var(--accent),transparent);animation:scan 2.5s ease-in-out infinite;opacity:0;transition:opacity 0.3s;z-index:10}
   .scan-line.active{opacity:1}
   @keyframes scan{0%{top:16px}50%{top:calc(100% - 20px)}100%{top:16px}}
-
   .state-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(10,10,18,0.92);backdrop-filter:blur(4px);transition:opacity 0.3s;z-index:20}
   .state-overlay.hidden{opacity:0;pointer-events:none}
   .state-icon{font-size:48px}
   .state-text{font-size:13px;color:var(--muted);text-align:center;font-family:'Space Mono',monospace;padding:0 20px;line-height:1.6}
   .success-flash{position:absolute;inset:0;background:var(--success);opacity:0;pointer-events:none;transition:opacity 0.1s;z-index:30}
   .success-flash.show{opacity:0.35}
-
   .btn-scan{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:18px;border-radius:16px;border:none;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:0.5px;transition:all 0.2s;position:relative;overflow:hidden}
   .btn-scan::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0.1);opacity:0;transition:opacity 0.2s}
   .btn-scan:active::after{opacity:1}
   .btn-scan.start{background:linear-gradient(135deg,var(--accent),#0099bb);color:#000}
   .btn-scan.stop{background:linear-gradient(135deg,var(--danger),#c0392b);color:#fff}
-
   .isbn-section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px}
   .isbn-label{font-size:10px;font-family:'Space Mono',monospace;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
   .isbn-input-row{display:flex;gap:10px;align-items:center}
@@ -63,12 +56,10 @@
   .isbn-input.filled{border-color:var(--success);color:var(--success)}
   .btn-clear{width:48px;height:48px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
   .btn-clear:active{background:var(--card);color:var(--danger)}
-
   .btn-search{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:18px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--accent2),#5b21b6);color:#fff;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:0.5px;position:relative;overflow:hidden}
   .btn-search::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0.1);opacity:0;transition:opacity 0.2s}
   .btn-search:active::after{opacity:1}
   .btn-search:disabled{opacity:0.4;cursor:not-allowed}
-
   .status-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);transition:all 0.3s}
   .status-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:all 0.3s}
   .status-bar.scanning .status-dot{background:var(--accent);animation:blink 1s ease-in-out infinite}
@@ -78,7 +69,6 @@
   .status-bar.success{border-color:rgba(0,255,163,0.3);color:var(--success)}
   .status-bar.error{border-color:rgba(255,71,87,0.3);color:var(--danger)}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
-
   .history-section{padding:0 20px 20px}
   .history-title{font-size:11px;font-family:'Space Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
   .history-list{display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto}
@@ -91,6 +81,11 @@
   .divider{height:1px;background:var(--border);margin:0 20px}
   .redirect-notice{position:fixed;bottom:20px;left:20px;right:20px;background:var(--success);color:#000;border-radius:14px;padding:16px 20px;font-family:'Space Mono',monospace;font-size:13px;font-weight:700;text-align:center;transform:translateY(100px);opacity:0;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);z-index:100;box-shadow:0 8px 32px rgba(0,255,163,0.3)}
   .redirect-notice.show{transform:translateY(0);opacity:1}
+
+  /* Instrucciones paso a paso */
+  .instructions{background:var(--card);border:1px solid rgba(0,229,255,0.2);border-radius:14px;padding:14px 16px;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8}
+  .instructions strong{color:var(--accent);display:block;margin-bottom:6px;font-size:12px}
+
   .history-list::-webkit-scrollbar{width:4px}
   .history-list::-webkit-scrollbar-track{background:transparent}
   .history-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -142,6 +137,14 @@
     <button class="btn-search" id="btn-search" onclick="searchISBN()" disabled>
       <span>🔍</span> BUSCAR EN TAU SISTEMAS
     </button>
+
+    <div class="instructions">
+      <strong>💡 ¿Cómo funciona la búsqueda?</strong>
+      Al presionar BUSCAR, se abrirá TAU Sistemas con el ISBN<br>
+      ya copiado en tu portapapeles. Solo pégalo en el campo<br>
+      ISBN y presiona Buscar.
+    </div>
+
   </div>
 
   <div class="divider"></div>
@@ -152,9 +155,8 @@
     </div>
   </div>
 </div>
-<div class="redirect-notice" id="redirect-notice">✓ Buscando ISBN en TAU Sistemas...</div>
+<div class="redirect-notice" id="redirect-notice">📋 ISBN copiado — pégalo en TAU Sistemas</div>
 
-<!-- html5-qrcode: probada y funcional en iOS Safari -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 const TARGET_URL = 'https://buscadorweb.tausistemas.cl/losangeles';
@@ -225,7 +227,8 @@ function onDetected(code) {
     try { localStorage.setItem('isbn_history', JSON.stringify(history)); } catch(e){}
     renderHistory();
   }
-  setTimeout(() => { searchISBN(); cooldown = false; }, 1500);
+  // No auto-search, let user confirm
+  setTimeout(() => { cooldown = false; }, 3000);
 }
 
 async function toggleScanner() {
@@ -237,28 +240,24 @@ async function startScanner() {
   setStatus('Iniciando cámara...', 'scanning');
   try {
     scanner = new Html5Qrcode('reader');
-
-    const config = {
-      fps: 10,
-      qrbox: { width: 250, height: 120 },
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-      ],
-      experimentalFeatures: { useBarCodeDetectorIfSupported: false }
-    };
-
     await scanner.start(
       { facingMode: 'environment' },
-      config,
-      (decodedText) => { onDetected(decodedText); },
-      () => {} // ignore not-found errors
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 120 },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+        ],
+        experimentalFeatures: { useBarCodeDetectorIfSupported: false }
+      },
+      (decodedText) => onDetected(decodedText),
+      () => {}
     );
-
     isScanning = true;
     document.getElementById('idle-state').classList.add('hidden');
     document.getElementById('scan-line').classList.add('active');
@@ -266,7 +265,6 @@ async function startScanner() {
     btn.className = 'btn-scan stop';
     btn.innerHTML = '<span>⏹</span> DETENER ESCÁNER';
     setStatus('Apunta al código de barras...', 'scanning');
-
   } catch(err) {
     console.error(err);
     const overlay = document.getElementById('idle-state');
@@ -295,25 +293,29 @@ async function stopScanner() {
   setStatus('Escáner detenido','');
 }
 
-function searchISBN() {
+async function searchISBN() {
   const isbn = document.getElementById('isbn-input').value.trim();
   if (!isbn) return;
+
+  // Copiar al portapapeles
+  try {
+    await navigator.clipboard.writeText(isbn);
+  } catch(e) {
+    // fallback silencioso
+  }
+
+  if (isScanning) await stopScanner();
+
+  // Mostrar aviso
   const notice = document.getElementById('redirect-notice');
+  notice.textContent = `📋 ISBN ${isbn} copiado — pégalo en TAU Sistemas`;
   notice.classList.add('show');
-  setTimeout(() => notice.classList.remove('show'), 2500);
-  if (isScanning) stopScanner();
+  setTimeout(() => notice.classList.remove('show'), 3500);
+
+  // Abrir TAU Sistemas
   setTimeout(() => {
-    const form = document.createElement('form');
-    form.method = 'GET';
-    form.action = TARGET_URL;
-    form.target = '_blank';
-    const inp = document.createElement('input');
-    inp.type = 'hidden'; inp.name = 'isbn'; inp.value = isbn;
-    form.appendChild(inp);
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-  }, 400);
+    window.open(TARGET_URL, '_blank');
+  }, 300);
 }
 
 document.getElementById('isbn-input').addEventListener('input', function() {
