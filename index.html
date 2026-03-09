@@ -136,19 +136,19 @@
 </div>
 <div class="redirect-notice" id="redirect-notice">✓ Buscando ISBN en TAU Sistemas...</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js"></script>
 <script>
-let codeReader = null;
+const TARGET_URL = 'https://buscadorweb.tausistemas.cl/losangeles';
 let stream = null;
+let detector = null;
+let scanInterval = null;
 let isScanning = false;
 let lastCode = '';
 let cooldown = false;
-let scanInterval = null;
 let history = [];
-const TARGET_URL = 'https://buscadorweb.tausistemas.cl/losangeles';
 
 try { history = JSON.parse(localStorage.getItem('isbn_history') || '[]'); } catch(e){}
 
+// ── Render history ──
 function renderHistory() {
   const list = document.getElementById('history-list');
   const empty = document.getElementById('empty-history');
@@ -211,41 +211,33 @@ function onDetected(code) {
   setTimeout(() => { searchISBN(); cooldown = false; }, 1500);
 }
 
-// Scan canvas frame-by-frame using ZXing
-function startFrameScanning(video) {
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-  const zxReader = new ZXingBrowser.BrowserMultiFormatReader();
-
-  scanInterval = setInterval(async () => {
-    if (!isScanning || video.readyState < 2) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    try {
-      const result = await zxReader.decodeFromCanvas(canvas);
-      if (result) onDetected(result.getText());
-    } catch(e) {
-      // No barcode found in frame — normal, keep scanning
-    }
-  }, 250);
-}
-
+// ── Scanner core ──
 async function toggleScanner() {
   if (isScanning) { stopScanner(); return; }
+
+  // Check BarcodeDetector support
+  if (!('BarcodeDetector' in window)) {
+    showError('Tu navegador no soporta\ndetección de códigos nativamente.\nUsa Safari en iOS 17+ o Chrome en Android.');
+    return;
+  }
+
   setStatus('Iniciando cámara...', 'scanning');
+
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: false
     });
+
     const video = document.getElementById('video');
     video.srcObject = stream;
     await video.play();
+
+    // Create BarcodeDetector
+    detector = new BarcodeDetector({
+      formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'isbn']
+    });
+
     isScanning = true;
     document.getElementById('idle-state').classList.add('hidden');
     document.getElementById('scan-line').classList.add('active');
@@ -253,15 +245,30 @@ async function toggleScanner() {
     btn.className = 'btn-scan stop';
     btn.innerHTML = '<span>⏹</span> DETENER ESCÁNER';
     setStatus('Apunta al código de barras...', 'scanning');
-    startFrameScanning(video);
+
+    // Scan frames
+    scanInterval = setInterval(async () => {
+      if (!isScanning || video.readyState < 2) return;
+      try {
+        const barcodes = await detector.detect(video);
+        if (barcodes.length > 0) {
+          onDetected(barcodes[0].rawValue);
+        }
+      } catch(e) { /* no barcode in frame */ }
+    }, 300);
+
   } catch(err) {
     console.error(err);
-    const overlay = document.getElementById('idle-state');
-    overlay.querySelector('.state-icon').textContent = '🚫';
-    overlay.querySelector('.state-text').textContent = 'Sin acceso a la cámara.\nVe a Ajustes → Safari → Cámara\ny permite el acceso.';
-    overlay.classList.remove('hidden');
+    showError('Sin acceso a la cámara.\nVe a Ajustes → Safari → Cámara\ny permite el acceso.');
     setStatus('Error: ' + (err.message || 'Permiso denegado'), 'error');
   }
+}
+
+function showError(msg) {
+  const overlay = document.getElementById('idle-state');
+  overlay.querySelector('.state-icon').textContent = '🚫';
+  overlay.querySelector('.state-text').textContent = msg;
+  overlay.classList.remove('hidden');
 }
 
 function stopScanner() {
@@ -269,6 +276,7 @@ function stopScanner() {
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   const video = document.getElementById('video');
   video.srcObject = null;
+  detector = null;
   isScanning = false;
   const overlay = document.getElementById('idle-state');
   overlay.classList.remove('hidden');
