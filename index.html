@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a12">
+<title>Scanner ISBN · TAU Sistemas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0a12;
+    --surface: #12121e;
+    --card: #1a1a2e;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --success: #00ffa3;
+    --danger: #ff4757;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --border: rgba(0,229,255,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    padding: 0 0 env(safe-area-inset-bottom);
+  }
+
+  /* Header */
+  header {
+    padding: 20px 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-mark {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -1px;
+    flex-shrink: 0;
+  }
+
+  .header-text h1 {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .header-text p {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    margin-top: 2px;
+  }
+
+  /* Scanner section */
+  .scanner-section {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .camera-wrapper {
+    position: relative;
+    width: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    aspect-ratio: 4/3;
+  }
+
+  #camera-container {
+    width: 100%;
+    height: 100%;
+  }
+
+  #camera-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  #camera-container canvas {
+    display: none;
+  }
+
+  /* Scanning overlay */
+  .scan-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* Corner brackets */
+  .corner {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+  }
+  .corner::before, .corner::after {
+    content: '';
+    position: absolute;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  .corner--tl { top: 16px; left: 16px; }
+  .corner--tl::before { top: 0; left: 0; width: 100%; height: 3px; }
+  .corner--tl::after  { top: 0; left: 0; width: 3px; height: 100%; }
+
+  .corner--tr { top: 16px; right: 16px; }
+  .corner--tr::before { top: 0; right: 0; width: 100%; height: 3px; }
+  .corner--tr::after  { top: 0; right: 0; width: 3px; height: 100%; }
+
+  .corner--bl { bottom: 16px; left: 16px; }
+  .corner--bl::before { bottom: 0; left: 0; width: 100%; height: 3px; }
+  .corner--bl::after  { bottom: 0; left: 0; width: 3px; height: 100%; }
+
+  .corner--br { bottom: 16px; right: 16px; }
+  .corner--br::before { bottom: 0; right: 0; width: 100%; height: 3px; }
+  .corner--br::after  { bottom: 0; right: 0; width: 3px; height: 100%; }
+
+  /* Scan line */
+  .scan-line {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent), transparent);
+    animation: scan 2.5s ease-in-out infinite;
+    opacity: 0;
+  }
+
+  .scan-line.active {
+    opacity: 1;
+  }
+
+  @keyframes scan {
+    0%   { top: 16px; }
+    50%  { top: calc(100% - 20px); }
+    100% { top: 16px; }
+  }
+
+  /* State overlays */
+  .state-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(10,10,18,0.85);
+    backdrop-filter: blur(4px);
+    transition: opacity 0.3s;
+  }
+
+  .state-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .state-icon {
+    font-size: 48px;
+    line-height: 1;
+    animation: pulse-icon 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-icon {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+  }
+
+  .state-text {
+    font-size: 14px;
+    color: var(--muted);
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    padding: 0 20px;
+  }
+
+  /* Success flash */
+  .success-flash {
+    position: absolute;
+    inset: 0;
+    background: var(--success);
+    opacity: 0;
+    border-radius: 20px;
+    pointer-events: none;
+    transition: opacity 0.1s;
+  }
+
+  .success-flash.show { opacity: 0.3; }
+
+  /* Buttons */
+  .btn-scan {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 18px;
+    border-radius: 16px;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-scan::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.1);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .btn-scan:active::after { opacity: 1; }
+
+  .btn-scan.start {
+    background: linear-gradient(135deg, var(--accent), #0099bb);
+    color: #000;
+  }
+
+  .btn-scan.stop {
+    background: linear-gradient(135deg, var(--danger), #c0392b);
+    color: #fff;
+  }
+
+  /* ISBN field */
+  .isbn-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .isbn-label {
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .isbn-input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .isbn-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 1px;
+  }
+
+  .isbn-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,255,0.1);
+  }
+
+  .isbn-input.filled {
+    border-color: var(--success);
+    color: var(--success);
+  }
+
+  .btn-clear {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+
+  .btn-clear:active { background: var(--card); color: var(--danger); }
+
+  /* Search button */
+  .btn-search {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 18px;
+    border-radius: 16px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent2), #5b21b6);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-search::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.1);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .btn-search:active::after { opacity: 1; }
+  .btn-search:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Status */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    transition: all 0.3s;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+
+  .status-bar.scanning .status-dot {
+    background: var(--accent);
+    animation: blink 1s ease-in-out infinite;
+  }
+
+  .status-bar.success .status-dot { background: var(--success); }
+  .status-bar.error .status-dot { background: var(--danger); }
+
+  .status-bar.scanning { border-color: rgba(0,229,255,0.3); color: var(--accent); }
+  .status-bar.success { border-color: rgba(0,255,163,0.3); color: var(--success); }
+  .status-bar.error { border-color: rgba(255,71,87,0.3); color: var(--danger); }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* History */
+  .history-section {
+    padding: 0 20px 20px;
+  }
+
+  .history-title {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+  }
+
+  .history-item:active {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.05);
+  }
+
+  .history-num { color: var(--muted); font-size: 10px; }
+  .history-code { flex: 1; color: var(--text); }
+  .history-use { color: var(--accent); font-size: 10px; }
+
+  /* Empty state */
+  .empty-history {
+    text-align: center;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    padding: 16px;
+    border: 1px dashed rgba(107,107,138,0.3);
+    border-radius: 10px;
+  }
+
+  /* Redirect notice */
+  .redirect-notice {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: var(--success);
+    color: #000;
+    border-radius: 14px;
+    padding: 16px 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,255,163,0.3);
+  }
+
+  .redirect-notice.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* Scrollbar */
+  .history-list::-webkit-scrollbar { width: 4px; }
+  .history-list::-webkit-scrollbar-track { background: transparent; }
+  .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="logo-mark">ISBN</div>
+    <div class="header-text">
+      <h1>Scanner ISBN</h1>
+      <p>TAU Sistemas · Los Ángeles</p>
+    </div>
+  </header>
+
+  <div class="scanner-section">
+
+    <!-- Camera -->
+    <div class="camera-wrapper">
+      <div id="camera-container"></div>
+
+      <div class="scan-overlay">
+        <div class="corner corner--tl"></div>
+        <div class="corner corner--tr"></div>
+        <div class="corner corner--bl"></div>
+        <div class="corner corner--br"></div>
+        <div class="scan-line" id="scan-line"></div>
+      </div>
+
+      <div class="state-overlay" id="idle-state">
+        <div class="state-icon">📷</div>
+        <div class="state-text">Presiona INICIAR para<br>activar la cámara</div>
+      </div>
+
+      <div class="success-flash" id="success-flash"></div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="status-bar" id="status-bar">
+      <div class="status-dot"></div>
+      <span id="status-text">Listo para escanear</span>
+    </div>
+
+    <!-- Scan button -->
+    <button class="btn-scan start" id="btn-scan" onclick="toggleScanner()">
+      <span>▶</span> INICIAR ESCÁNER
+    </button>
+
+    <!-- ISBN Field -->
+    <div class="isbn-section">
+      <div class="isbn-label">Código ISBN detectado</div>
+      <div class="isbn-input-row">
+        <input
+          type="text"
+          class="isbn-input"
+          id="isbn-input"
+          placeholder="—"
+          inputmode="numeric"
+          autocomplete="off"
+        />
+        <button class="btn-clear" onclick="clearISBN()" title="Limpiar">✕</button>
+      </div>
+    </div>
+
+    <!-- Search button -->
+    <button class="btn-search" id="btn-search" onclick="searchISBN()" disabled>
+      <span>🔍</span> BUSCAR EN TAU SISTEMAS
+    </button>
+
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- History -->
+  <div class="history-section" style="margin-top:16px">
+    <div class="history-title">Últimas búsquedas</div>
+    <div class="history-list" id="history-list">
+      <div class="empty-history" id="empty-history">Sin historial aún</div>
+    </div>
+  </div>
+</div>
+
+<!-- Redirect toast -->
+<div class="redirect-notice" id="redirect-notice">
+  ✓ Buscando ISBN en TAU Sistemas...
+</div>
+
+<script>
+let isScanning = false;
+let lastCode = '';
+let history = JSON.parse(localStorage.getItem('isbn_history') || '[]');
+let cooldown = false;
+
+const TARGET_URL = 'https://buscadorweb.tausistemas.cl/losangeles';
+
+// Render history
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const empty = document.getElementById('empty-history');
+  if (history.length === 0) {
+    empty.style.display = 'block';
+    list.querySelectorAll('.history-item').forEach(e => e.remove());
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = '';
+  [...history].reverse().slice(0, 8).forEach((code, i) => {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `
+      <span class="history-num">#${history.length - i}</span>
+      <span class="history-code">${code}</span>
+      <span class="history-use">usar →</span>
+    `;
+    item.onclick = () => useCode(code);
+    list.appendChild(item);
+  });
+}
+
+function useCode(code) {
+  document.getElementById('isbn-input').value = code;
+  document.getElementById('isbn-input').classList.add('filled');
+  document.getElementById('btn-search').disabled = false;
+  setStatus('Código cargado desde historial', '');
+}
+
+function setStatus(msg, state) {
+  const bar = document.getElementById('status-bar');
+  bar.className = 'status-bar' + (state ? ' ' + state : '');
+  document.getElementById('status-text').textContent = msg;
+}
+
+function clearISBN() {
+  const input = document.getElementById('isbn-input');
+  input.value = '';
+  input.classList.remove('filled');
+  document.getElementById('btn-search').disabled = true;
+  lastCode = '';
+  setStatus('Listo para escanear', '');
+}
+
+function showFlash() {
+  const flash = document.getElementById('success-flash');
+  flash.classList.add('show');
+  setTimeout(() => flash.classList.remove('show'), 300);
+}
+
+function onDetected(code) {
+  if (cooldown || code === lastCode) return;
+  cooldown = true;
+  lastCode = code;
+
+  // Vibrate
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+
+  // Update UI
+  const input = document.getElementById('isbn-input');
+  input.value = code;
+  input.classList.add('filled');
+  document.getElementById('btn-search').disabled = false;
+
+  showFlash();
+  setStatus(`Código detectado: ${code}`, 'success');
+
+  // Save to history
+  if (!history.includes(code)) {
+    history.push(code);
+    if (history.length > 20) history.shift();
+    localStorage.setItem('isbn_history', JSON.stringify(history));
+    renderHistory();
+  }
+
+  // Auto-search after 1.5s
+  setTimeout(() => {
+    searchISBN();
+    cooldown = false;
+  }, 1500);
+}
+
+function toggleScanner() {
+  if (isScanning) stopScanner();
+  else startScanner();
+}
+
+function startScanner() {
+  const idleState = document.getElementById('idle-state');
+  const scanLine = document.getElementById('scan-line');
+  const btn = document.getElementById('btn-scan');
+
+  setStatus('Iniciando cámara...', 'scanning');
+
+  Quagga.init({
+    inputStream: {
+      name: 'Live',
+      type: 'LiveStream',
+      target: document.getElementById('camera-container'),
+      constraints: {
+        facingMode: 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+    },
+    locator: {
+      patchSize: 'medium',
+      halfSample: true,
+    },
+    numOfWorkers: 2,
+    frequency: 10,
+    decoder: {
+      readers: [
+        'ean_reader',
+        'ean_8_reader',
+        'isbn_reader',
+        'code_128_reader',
+        'code_39_reader',
+      ],
+    },
+    locate: true,
+  }, function(err) {
+    if (err) {
+      setStatus('Error: ' + (err.message || 'No se pudo acceder a la cámara'), 'error');
+      idleState.querySelector('.state-icon').textContent = '🚫';
+      idleState.querySelector('.state-text').textContent = 'Sin acceso a la cámara.\nVerifica los permisos.';
+      return;
+    }
+
+    Quagga.start();
+    isScanning = true;
+
+    idleState.classList.add('hidden');
+    scanLine.classList.add('active');
+    btn.className = 'btn-scan stop';
+    btn.innerHTML = '<span>⏹</span> DETENER ESCÁNER';
+
+    setStatus('Apunta al código de barras...', 'scanning');
+  });
+
+  Quagga.onDetected(function(result) {
+    const code = result.codeResult.code;
+    if (code && code.length >= 8) {
+      onDetected(code);
+    }
+  });
+}
+
+function stopScanner() {
+  Quagga.stop();
+  isScanning = false;
+
+  const idleState = document.getElementById('idle-state');
+  const scanLine = document.getElementById('scan-line');
+  const btn = document.getElementById('btn-scan');
+
+  idleState.classList.remove('hidden');
+  idleState.querySelector('.state-icon').textContent = '📷';
+  idleState.querySelector('.state-text').textContent = 'Presiona INICIAR para\nactivar la cámara';
+  scanLine.classList.remove('active');
+
+  btn.className = 'btn-scan start';
+  btn.innerHTML = '<span>▶</span> INICIAR ESCÁNER';
+
+  setStatus('Escáner detenido', '');
+}
+
+function searchISBN() {
+  const isbn = document.getElementById('isbn-input').value.trim();
+  if (!isbn) return;
+
+  // Show toast
+  const notice = document.getElementById('redirect-notice');
+  notice.classList.add('show');
+  setTimeout(() => notice.classList.remove('show'), 2500);
+
+  // Stop scanner if running
+  if (isScanning) stopScanner();
+
+  // Build URL and submit via form trick to target the ISBN field
+  // We open the target URL with isbn as query param approach using iframe post
+  setTimeout(() => {
+    const form = document.createElement('form');
+    form.method = 'GET';
+    form.action = TARGET_URL;
+    form.target = '_blank';
+
+    // Common field names to try - we send isbn
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'isbn';
+    input.value = isbn;
+    form.appendChild(input);
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  }, 500);
+}
+
+// Manual ISBN input
+document.getElementById('isbn-input').addEventListener('input', function() {
+  const val = this.value.trim();
+  document.getElementById('btn-search').disabled = val.length < 3;
+  if (val.length >= 8) {
+    this.classList.add('filled');
+  } else {
+    this.classList.remove('filled');
+  }
+});
+
+document.getElementById('isbn-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && this.value.trim().length >= 3) {
+    searchISBN();
+  }
+});
+
+// Init
+renderHistory();
+</script>
+
+</body>
+</html>
