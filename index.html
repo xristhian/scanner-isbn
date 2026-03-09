@@ -217,8 +217,9 @@ function onDetected(code) {
     try { localStorage.setItem('isbn_history', JSON.stringify(history)); } catch(e){}
     renderHistory();
   }
-  // Auto-buscar al detectar
-  setTimeout(() => { searchISBN(); cooldown = false; }, 1000);
+  // Auto-buscar inmediatamente (sin setTimeout para que Safari no lo bloquee)
+  searchISBN();
+  setTimeout(() => { cooldown = false; }, 3000);
 }
 
 async function toggleScanner() {
@@ -287,15 +288,15 @@ function searchISBN() {
   const isbn = document.getElementById('isbn-input').value.trim();
   if (!isbn) return;
 
+  // Abrir PRIMERO — Safari bloquea window.open si no es llamada directa del usuario
+  window.open(SEARCH_URL + encodeURIComponent(isbn), '_blank');
+
   if (isScanning) stopScanner();
 
   const notice = document.getElementById('redirect-notice');
   notice.textContent = `🔍 Buscando ${isbn} en De Cea Libros...`;
   notice.classList.add('show');
   setTimeout(() => notice.classList.remove('show'), 2500);
-
-  // Jumpseller acepta búsqueda directa por URL — abre resultado al instante
-  window.open(SEARCH_URL + encodeURIComponent(isbn), '_blank');
 }
 
 document.getElementById('isbn-input').addEventListener('input', function() {
