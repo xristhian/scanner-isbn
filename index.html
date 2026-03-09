@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0a12">
-<title>Scanner ISBN · TAU Sistemas</title>
+<title>Scanner ISBN · De Cea Libros</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
   :root{--bg:#0a0a12;--surface:#12121e;--card:#1a1a2e;--accent:#00e5ff;--accent2:#7c3aed;--success:#00ffa3;--danger:#ff4757;--text:#e8e8f0;--muted:#6b6b8a;--border:rgba(0,229,255,0.15)}
@@ -81,11 +81,6 @@
   .divider{height:1px;background:var(--border);margin:0 20px}
   .redirect-notice{position:fixed;bottom:20px;left:20px;right:20px;background:var(--success);color:#000;border-radius:14px;padding:16px 20px;font-family:'Space Mono',monospace;font-size:13px;font-weight:700;text-align:center;transform:translateY(100px);opacity:0;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);z-index:100;box-shadow:0 8px 32px rgba(0,255,163,0.3)}
   .redirect-notice.show{transform:translateY(0);opacity:1}
-
-  /* Instrucciones paso a paso */
-  .instructions{background:var(--card);border:1px solid rgba(0,229,255,0.2);border-radius:14px;padding:14px 16px;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8}
-  .instructions strong{color:var(--accent);display:block;margin-bottom:6px;font-size:12px}
-
   .history-list::-webkit-scrollbar{width:4px}
   .history-list::-webkit-scrollbar-track{background:transparent}
   .history-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -97,7 +92,7 @@
     <div class="logo-mark">ISBN</div>
     <div class="header-text">
       <h1>Scanner ISBN</h1>
-      <p>TAU Sistemas · Los Ángeles</p>
+      <p>De Cea Libros · Los Ángeles</p>
     </div>
   </header>
   <div class="scanner-section">
@@ -135,16 +130,8 @@
     </div>
 
     <button class="btn-search" id="btn-search" onclick="searchISBN()" disabled>
-      <span>🔍</span> BUSCAR EN TAU SISTEMAS
+      <span>🔍</span> BUSCAR EN DE CEA LIBROS
     </button>
-
-    <div class="instructions">
-      <strong>💡 ¿Cómo funciona la búsqueda?</strong>
-      Al presionar BUSCAR, se abrirá TAU Sistemas con el ISBN<br>
-      ya copiado en tu portapapeles. Solo pégalo en el campo<br>
-      ISBN y presiona Buscar.
-    </div>
-
   </div>
 
   <div class="divider"></div>
@@ -155,11 +142,14 @@
     </div>
   </div>
 </div>
-<div class="redirect-notice" id="redirect-notice">📋 ISBN copiado — pégalo en TAU Sistemas</div>
+
+<div class="redirect-notice" id="redirect-notice">🔍 Buscando en De Cea Libros...</div>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
-const TARGET_URL = 'https://buscadorweb.tausistemas.cl/losangeles';
+// De Cea Libros usa Jumpseller — búsqueda directa por URL
+const SEARCH_URL = 'https://decealibros.cl/search?q=';
+
 let scanner = null;
 let isScanning = false;
 let lastCode = '';
@@ -227,8 +217,8 @@ function onDetected(code) {
     try { localStorage.setItem('isbn_history', JSON.stringify(history)); } catch(e){}
     renderHistory();
   }
-  // No auto-search, let user confirm
-  setTimeout(() => { cooldown = false; }, 3000);
+  // Auto-buscar al detectar
+  setTimeout(() => { searchISBN(); cooldown = false; }, 1000);
 }
 
 async function toggleScanner() {
@@ -293,29 +283,19 @@ async function stopScanner() {
   setStatus('Escáner detenido','');
 }
 
-async function searchISBN() {
+function searchISBN() {
   const isbn = document.getElementById('isbn-input').value.trim();
   if (!isbn) return;
 
-  // Copiar al portapapeles
-  try {
-    await navigator.clipboard.writeText(isbn);
-  } catch(e) {
-    // fallback silencioso
-  }
+  if (isScanning) stopScanner();
 
-  if (isScanning) await stopScanner();
-
-  // Mostrar aviso
   const notice = document.getElementById('redirect-notice');
-  notice.textContent = `📋 ISBN ${isbn} copiado — pégalo en TAU Sistemas`;
+  notice.textContent = `🔍 Buscando ${isbn} en De Cea Libros...`;
   notice.classList.add('show');
-  setTimeout(() => notice.classList.remove('show'), 3500);
+  setTimeout(() => notice.classList.remove('show'), 2500);
 
-  // Abrir TAU Sistemas
-  setTimeout(() => {
-    window.open(TARGET_URL, '_blank');
-  }, 300);
+  // Jumpseller acepta búsqueda directa por URL — abre resultado al instante
+  window.open(SEARCH_URL + encodeURIComponent(isbn), '_blank');
 }
 
 document.getElementById('isbn-input').addEventListener('input', function() {
